@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Created on Mon Feb 15 14:02:58 2021
-@authors: gregory wolfe, jonesy jones, and brian wolfe
+@authors: Alisha Jones, Ph.D., Gregory Wolfe and Brian Wolfe, Ph.D.
 Put your .out files from the distance distribution in one folder.
 This plots all data from one directory to a single Kratky plot.
 
 Run from command line example:
 >>> python3 rg_and_io.py path/to/datafiles -o save/to/dir/plotname -c red blue
 """
+
 from argparse import ArgumentParser
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -19,12 +20,12 @@ LEGEND_NAMES = []
 FILES = []
 
 
-def gather_files_legend(mydir):
+def gather_files_legend(data_dir):
     """Populate lists of file names and names for plot legend.
 
     Parameters
     ----------
-    mydir : string
+    data_dir : string
         Path to directory containing files to be plotted.
 
     Returns
@@ -32,68 +33,68 @@ def gather_files_legend(mydir):
     None.
 
     """
-    for file in os.listdir(mydir):
-        if file.endswith(".out"):
-            LEGEND_NAMES.append('_'.join(file.split('_')[:3]))
-    for file in os.listdir(mydir):
-        if file.endswith(".out"):
-            FILES.append(os.path.join(mydir, file))
+    for fn in os.listdir(data_dir):
+        if fn.endswith(".out"):
+            LEGEND_NAMES.append('_'.join(fn.split('_')[:3]))
+    for fn in os.listdir(data_dir):
+        if fn.endswith(".out"):
+            FILES.append(os.path.join(data_dir, fn))
 
 
-def S_I(filename):
+def get_s_i(fn):
     """Extract 'S' and 'J EXP' columns from data file.
 
     Parameters
     ----------
-    filename : string
+    fn : string
         Filename to pull 'S' and 'J EXP' columns from.
 
     Returns
     -------
-    data : pandas.DataFrame
+    s_i_data : pandas.DataFrame
         Dataframe with columns of data from 'S' and 'J EXP'.
 
     """
-    data_pre = pd.read_table(filename, names=['data'], sep='\n',
-                             skip_blank_lines=False).dropna()
-    stop = data_pre[data_pre.data.str.contains(
+    data_find = pd.read_table(fn, names=['data'], sep='\n',
+                              skip_blank_lines=False).dropna()
+    stop = data_find[data_find.data.str.contains(
         pat='\s*Real\s*Space', case=True)].index.to_list()[0] - 2
-    start = (data_pre[data_pre.data.str.contains(
+    start = (data_find[data_find.data.str.contains(
         pat='\s*S\s*J EXP\s*(ERROR)', case=True)].index.to_list()[0] + 1)
-    data = pd.read_fwf(filename, engine='python',
-                       skiprows=start, nrows=stop-start,
-                       names=['S', 'J EXP', 'ERROR', 'J REG', 'I REG'])
-    data = data[['S', 'J EXP']].astype('float')
-    return data
+    s_i_data = pd.read_fwf(fn, engine='python',
+                           skiprows=start, nrows=stop-start,
+                           names=['S', 'J EXP', 'ERROR', 'J REG', 'I REG'])
+    s_i_data = s_i_data[['S', 'J EXP']].astype('float')
+    return s_i_data
 
 
-def real_space_Rg(filename):
-    """Extract RG value from data file.
+def real_space_rg(fn):
+    """Extract Rg value from data file.
 
     Parameters
     ----------
-    filename : string
-        Filename to pull Real Space RG data from.
+    fn : string
+        Filename to pull Real Space Rg data from.
 
     Returns
     -------
     rg : float
-        RG value from data file.
+        Rg value from data file.
 
     """
-    with open(filename) as f:
+    with open(fn) as f:
         for line in f:
             if 'Real space Rg' in line:
                 rg = float(line.split()[3])
                 return rg
 
 
-def real_space_I0(filename):
+def real_space_io(fn):
     """Extract Real Space I(0) data from data file.
 
     Parameters
     ----------
-    filename : string
+    fn : string
         Filename to pull Real Space I(0) data from.
 
     Returns
@@ -102,14 +103,14 @@ def real_space_I0(filename):
         I(0) value from data file.
 
     """
-    with open(filename) as f:
+    with open(fn) as f:
         for line in f:
             if 'Real space I(0)' in line:
                 i0 = float(line.split()[3])
                 return i0
 
 
-def plot_rg_io(o_file, colors):
+def plot_rg_io(outfile, colors):
     """Create scatterplot of overlaid values from all data files in directory.
 
     Pass filepath to which plot should be saved, excluding extension. Plot
@@ -120,7 +121,7 @@ def plot_rg_io(o_file, colors):
 
     Parameters
     ----------
-    o_file : string
+    outfile : string
         Filepath to save plot, excluding extension.
     colors : list of strings
         List of colors to pass to scatterplot function.
@@ -130,21 +131,22 @@ def plot_rg_io(o_file, colors):
     None.
 
     """
-    RGs = []
-    I0s = []
+    rgs = []
+    i0s = []
     dataframes = []
     patches = []
 
     for filename in FILES:
-        Iof0 = real_space_I0(filename)
-        I0s.append(Iof0)
-        Rg = real_space_Rg(filename)
-        RGs.append(Rg)
-        mydf = S_I(filename)
-        mydf['new_column'] = (mydf['S'] * Rg)**2 * (mydf['J EXP'] / Iof0)
-        # mydf['new_column2'] = mydf['new_column'] / Iof0
-        mydf['new_column3'] = mydf['S'] * Rg
-        dataframes.append(mydf)
+        i0 = real_space_io(filename)
+        i0s.append(i0)
+        rg = real_space_rg(filename)
+        rgs.append(rg)
+        df_s_i = get_s_i(filename)
+        df_s_i['new_column'] = (
+            df_s_i['S'] * rg)**2 * (df_s_i['J EXP'] / i0)
+        # df_s_i['new_column2'] = df_s_i['new_column'] / i0
+        df_s_i['new_column3'] = df_s_i['S'] * rg
+        dataframes.append(df_s_i)
     fig, ax = plt.subplots(figsize=(8, 8))
 
     for name, df, color in zip(LEGEND_NAMES, dataframes, colors):
@@ -157,7 +159,7 @@ def plot_rg_io(o_file, colors):
     plt.legend(handles=patches)
     plt.hlines(y=1.1, xmin=0, xmax=1.7, colors='cyan', linestyles='--', lw=2)
     plt.vlines(x=1.7, ymin=0, ymax=1.1, colors='cyan', linestyles='--', lw=2)
-    plt.savefig(o_file + '.pdf')
+    plt.savefig(outfile + '.pdf')
 
 
 def rg_i0(argv):
