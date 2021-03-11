@@ -1,21 +1,43 @@
 #!/usr/bin/env python3
 """
-Created on Mon Feb 15 14:02:58 2021
 @authors: Alisha Jones, Ph.D., Gregory Wolfe and Brian Wolfe, Ph.D.
-Put your .out files from the distance distribution in one folder.
-This plots all data from one directory to a single Kratky plot.
+
+Plot all .out file data from one directory to a single Kratky plot.
+
+Place your .out files with distance distribution data into one folder before
+running data extraction function or module from command line.
 
 Run from command line example:
 >>> python3 rg_and_io.py path/to/datafiles -o save/to/dir/plotname -c red blue
+Saves plotname.pdf into directory save/to/dir.
+
+Do not include extension in outfile filepath.
+Plots will save in .pdf format.
+If no data directory is given, defaults to current working directory.
+A default list of plot colors is provided.
+
+Minimal command line example:
+Navigate to directory containing data files.
+>>> python3 rg_and_io.py -o kratky_plot
+Saves kratky_plot.pdf into current working directory.
 """
 
 from argparse import ArgumentParser
+import io
 import os
 import sys
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
+import re
+
+EXP_DATA_TOP_RE = re.compile(r'\s*S\s*J EXP\s*(ERROR).*')
+EXP_DATA_END_RE = re.compile(r'.*(Real\s*Space).*')
+RG_RE = re.compile(
+    r'\s*Real space Rg:\s+(?P<rg_val>\d+\.\d+E\+\d+)\s\+-.*')
+I0_RE = re.compile(
+    r'\s*Real space I\(0\):\s+(?P<i0_val>\d+\.\d+E\+\d+)\s\+-.*')
 
 
 def gather_files_legend(data_dir):
@@ -44,8 +66,8 @@ def gather_files_legend(data_dir):
     return fns, legend_names
 
 
-def get_s_i(fn):
-    """Extract 'S' and 'J EXP' columns from data file.
+def extract_vals_data(fn):
+    """Extract 'S' and 'J EXP' columns, Rg and I(0) values from data file.
 
     Parameters
     ----------
@@ -54,63 +76,40 @@ def get_s_i(fn):
 
     Returns
     -------
-    s_i_data : pandas.DataFrame
-        Dataframe with columns of data from 'S' and 'J EXP'.
-
+    s_jexp_df : pandas.DataFrame
+        Dataframe with 'S' and 'J EXP' columns from data file as float values.
+    rg_val: float
+        Value from 'Real space Rg' row of data file.
+    i0_val: float
+        Value from 'Real space I(0)' row of data file.
     """
-    data_find = pd.read_table(fn, names=['data'], sep='\n',
-                              skip_blank_lines=False).dropna()
-    stop = data_find[data_find.data.str.contains(
-        pat='\s*Real\s*Space', case=True)].index.to_list()[0] - 2
-    start = (data_find[data_find.data.str.contains(
-        pat='\s*S\s*J EXP\s*(ERROR)', case=True)].index.to_list()[0] + 1)
-    s_i_data = pd.read_fwf(fn, engine='python',
-                           skiprows=start, nrows=stop-start,
-                           names=['S', 'J EXP', 'ERROR', 'J REG', 'I REG'])
-    s_i_data = s_i_data[['S', 'J EXP']].astype('float')
-    return s_i_data
-
-
-def real_space_rg(fn):
-    """Extract Rg value from data file.
-
-    Parameters
-    ----------
-    fn : string
-        Filename to pull Real Space Rg data from.
-
-    Returns
-    -------
-    rg : float
-        Rg value from data file.
-
-    """
-    with open(fn) as f:
+    with open(fn, encoding='utf-8') as f:
         for line in f:
-            if 'Real space Rg' in line:
-                rg = float(line.split()[3])
-                return rg
-
-
-def real_space_io(fn):
-    """Extract Real Space I(0) data from data file.
-
-    Parameters
-    ----------
-    fn : string
-        Filename to pull Real Space I(0) data from.
-
-    Returns
-    -------
-    i0 : float
-        I(0) value from data file.
-
-    """
-    with open(fn) as f:
+            rg_match_tmp = RG_RE.match(line)
+            if rg_match_tmp:
+                rg_match = rg_match_tmp
+                break
         for line in f:
-            if 'Real space I(0)' in line:
-                i0 = float(line.split()[3])
-                return i0
+            i0_match_tmp = I0_RE.match(line)
+            if i0_match_tmp:
+                i0_match = i0_match_tmp
+                break
+        for line in f:
+            if EXP_DATA_TOP_RE.match(line):
+                break
+        buffer = io.StringIO()
+        for line in f:
+            if EXP_DATA_END_RE.match(line):
+                break
+            buffer.write(line)
+
+    buffer.seek(0)
+    s_jexp_df = pd.read_fwf(buffer, names=['s', 'j_exp', 'error', 'j_reg',
+                                           'i_reg']).dropna(how='all')[
+                                               ['s', 'j_exp']].astype('float')
+    rg_val = float(rg_match.group('rg_val'))
+    i0_val = float(i0_match.group('i0_val'))
+    return s_jexp_df, rg_val, i0_val
 
 
 def plot_rg_io(data_dir, outfile, colors):
@@ -136,31 +135,25 @@ def plot_rg_io(data_dir, outfile, colors):
     None.
 
     """
-    rgs = []
-    i0s = []
     dataframes = []
     patches = []
     fns, legend_names = gather_files_legend(data_dir)
 
     for filename in fns:
-        i0 = real_space_io(filename)
-        i0s.append(i0)
-        rg = real_space_rg(filename)
-        rgs.append(rg)
-        df_s_i = get_s_i(filename)
-        df_s_i['new_column'] = (
-            df_s_i['S'] * rg)**2 * (df_s_i['J EXP'] / i0)
-        # df_s_i['new_column2'] = df_s_i['new_column'] / i0
-        df_s_i['new_column3'] = df_s_i['S'] * rg
-        dataframes.append(df_s_i)
+        s_jexp_df, rg, i0 = extract_vals_data(filename)
+        s_jexp_df['j_exp_norm'] = (
+            s_jexp_df['s'] * rg)**2 * (s_jexp_df['j_exp'] / i0)
+        # s_jexp_df['new_column2'] = s_jexp_df['j_exp_norm'] / i0
+        s_jexp_df['s_norm'] = s_jexp_df['s'] * rg
+        dataframes.append(s_jexp_df)
     fig, ax = plt.subplots(figsize=(8, 8))
 
     for name, df, color in zip(legend_names, dataframes, colors):
-        l, = ax.plot(df['new_column3'], df['new_column'],
+        l, = ax.plot(df['s_norm'], df['j_exp_norm'],
                      linestyle="", marker="o", color=color)
         patches.append(mpatches.Patch(color=color, label=name))
         # ax.set_xlim(0,25)
-        # plt.plot(df['new_column3'], df['new_column2'],
+        # plt.plot(df['s_norm'], df['new_column2'],
         # linestyle="",marker="o")
     plt.legend(handles=patches)
     plt.hlines(y=1.1, xmin=0, xmax=1.7, colors='cyan', linestyles='--', lw=2)
@@ -175,7 +168,7 @@ def rg_i0(argv):
     >>> python3 RG_and_IO.py my/data/dir -o save/to/file -c red blue
     """
     parser = ArgumentParser(description="Create scatterplot of data.")
-    parser.add_argument('mydir', metavar='DIR',
+    parser.add_argument('mydir', nargs='?', metavar='DIR',
                         help='Path to directory containing data',
                         default=os.getcwd())
     parser.add_argument('--outfile', '-o',
