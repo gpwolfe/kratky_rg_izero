@@ -10,14 +10,12 @@ Run from command line example:
 """
 
 from argparse import ArgumentParser
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 import os
-import pandas as pd
 import sys
 
-LEGEND_NAMES = []
-FILES = []
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def gather_files_legend(data_dir):
@@ -30,15 +28,20 @@ def gather_files_legend(data_dir):
 
     Returns
     -------
-    None.
-
+    fns : list
+        List of file names.
+    legend_names : list
+        List of names for plot legend.
     """
+    fns = []
+    legend_names = []
     for fn in os.listdir(data_dir):
         if fn.endswith(".out"):
-            LEGEND_NAMES.append('_'.join(fn.split('_')[:3]))
+            legend_names.append('_'.join(fn.split('_')[:3]))
     for fn in os.listdir(data_dir):
         if fn.endswith(".out"):
-            FILES.append(os.path.join(data_dir, fn))
+            fns.append(os.path.join(data_dir, fn))
+    return fns, legend_names
 
 
 def get_s_i(fn):
@@ -110,17 +113,19 @@ def real_space_io(fn):
                 return i0
 
 
-def plot_rg_io(outfile, colors):
+def plot_rg_io(data_dir, outfile, colors):
     """Create scatterplot of overlaid values from all data files in directory.
 
     Pass filepath to which plot should be saved, excluding extension. Plot
     will be saved as .PDF.
     Pass colors as a list of strings. Can be any color values recognized by
     matplotlib, including standard colors (e.g. ['red', 'blue']) or
-    hexadecimal values.
+    hexadecimal values (e.g. ['#4daf4a', '#377eb8'].
 
     Parameters
     ----------
+    data_dir: string
+        Path to directory containing data files.
     outfile : string
         Filepath to save plot, excluding extension.
     colors : list of strings
@@ -135,8 +140,9 @@ def plot_rg_io(outfile, colors):
     i0s = []
     dataframes = []
     patches = []
+    fns, legend_names = gather_files_legend(data_dir)
 
-    for filename in FILES:
+    for filename in fns:
         i0 = real_space_io(filename)
         i0s.append(i0)
         rg = real_space_rg(filename)
@@ -149,7 +155,7 @@ def plot_rg_io(outfile, colors):
         dataframes.append(df_s_i)
     fig, ax = plt.subplots(figsize=(8, 8))
 
-    for name, df, color in zip(LEGEND_NAMES, dataframes, colors):
+    for name, df, color in zip(legend_names, dataframes, colors):
         l, = ax.plot(df['new_column3'], df['new_column'],
                      linestyle="", marker="o", color=color)
         patches.append(mpatches.Patch(color=color, label=name))
@@ -172,9 +178,9 @@ def rg_i0(argv):
     parser.add_argument('mydir', metavar='DIR',
                         help='Path to directory containing data',
                         default=os.getcwd())
-    parser.add_argument('-outfile', '-o',
+    parser.add_argument('--outfile', '-o',
                         help='Filepath including filename for plot, no ext.')
-    parser.add_argument('-colors', '-c', nargs='+',
+    parser.add_argument('--colors', '-c', nargs='+',
                         help="Colors for scatterplot",
                         default=['#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
                                  '#984ea3', '#ffff33'])
@@ -182,8 +188,7 @@ def rg_i0(argv):
     mydir = args.mydir
     outfile = args.outfile
     colors = args.colors
-    gather_files_legend(mydir)
-    plot_rg_io(outfile, colors)
+    plot_rg_io(mydir, outfile, colors)
 
 
 if __name__ == '__main__':
