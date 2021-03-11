@@ -25,12 +25,12 @@ Saves kratky_plot.pdf into current working directory.
 from argparse import ArgumentParser
 import io
 import os
+import re
 import sys
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
-import re
 
 EXP_DATA_TOP_RE = re.compile(r'\s*S\s*J EXP\s*(ERROR).*')
 EXP_DATA_END_RE = re.compile(r'.*(Real\s*Space).*')
