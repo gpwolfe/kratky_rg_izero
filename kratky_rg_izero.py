@@ -16,7 +16,7 @@ Plots will save in .pdf format.
 If no data directory is given, defaults to current working directory.
 A default list of plot colors is provided.
 
-Minimal command line example:
+Minimal command line example (if module and data files in same directory):
 Navigate to directory containing data files.
 >>> python3 rg_and_io.py -o kratky_plot
 Saves kratky_plot.pdf into current working directory.
@@ -115,6 +115,7 @@ def extract_vals_data(fn):
 def plot_rg_io(data_dir, outfile, colors):
     """Create scatterplot of overlaid values from all data files in directory.
 
+    Pass path to directory of data to be plotted.
     Pass filepath to which plot should be saved, excluding extension. Plot
     will be saved as .PDF.
     Pass colors as a list of strings. Can be any color values recognized by
