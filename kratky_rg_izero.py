@@ -17,17 +17,18 @@ If no data directory is given, defaults to current working directory.
 A default list of plot colors is provided.
 
 Minimal command line example (if module and data files in same directory):
-Navigate to directory containing data files.
+Navigate to directory containing module and data files.
 >>> python3 rg_and_io.py -o kratky_plot
 Saves kratky_plot.pdf into current working directory.
 """
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentError
 import io
 import os
 import re
 import sys
 
+import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -112,6 +113,31 @@ def extract_vals_data(fn):
     return s_jexp_df, rg_val, i0_val
 
 
+def plot_colors(color_str, sep=','):
+    """
+    Split comma-separated list of colors and check that they are valid colors.
+
+    Raises
+    ------
+    ArgumentError
+        Raised if color_str value is not valid.
+
+    Returns
+    -------
+    values : List
+        List of colors to be used for plot.
+
+    """
+    values = []
+    for val in color_str.split(sep):
+        if mcolors.is_color_like(val):
+            values.append(val)
+        else:
+            raise ArgumentError(
+                'Invalid color "{}". Must be a valid color'.format(val))
+    return values
+
+
 def plot_rg_io(data_dir, outfile, colors):
     """Create scatterplot of overlaid values from all data files in directory.
 
@@ -144,7 +170,6 @@ def plot_rg_io(data_dir, outfile, colors):
         s_jexp_df, rg, i0 = extract_vals_data(filename)
         s_jexp_df['j_exp_norm'] = (
             s_jexp_df['s'] * rg)**2 * (s_jexp_df['j_exp'] / i0)
-        # s_jexp_df['new_column2'] = s_jexp_df['j_exp_norm'] / i0
         s_jexp_df['s_norm'] = s_jexp_df['s'] * rg
         dataframes.append(s_jexp_df)
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -153,9 +178,6 @@ def plot_rg_io(data_dir, outfile, colors):
         l, = ax.plot(df['s_norm'], df['j_exp_norm'],
                      linestyle="", marker="o", color=color)
         patches.append(mpatches.Patch(color=color, label=name))
-        # ax.set_xlim(0,25)
-        # plt.plot(df['s_norm'], df['new_column2'],
-        # linestyle="",marker="o")
     plt.legend(handles=patches)
     plt.hlines(y=1.1, xmin=0, xmax=1.7, colors='cyan', linestyles='--', lw=2)
     plt.vlines(x=1.7, ymin=0, ymax=1.1, colors='cyan', linestyles='--', lw=2)
@@ -174,8 +196,9 @@ def rg_i0(argv):
                         default=os.getcwd())
     parser.add_argument('--outfile', '-o',
                         help='Filepath including filename for plot, no ext.')
-    parser.add_argument('--colors', '-c', nargs='+',
-                        help="Colors for scatterplot",
+    parser.add_argument('--colors', '-c',
+                        help="Comma-separated colors for scatterplot",
+                        type=plot_colors,
                         default=['#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
                                  '#984ea3', '#ffff33'])
     args = parser.parse_args(argv)
