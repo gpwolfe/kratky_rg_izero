@@ -14,9 +14,13 @@ Place all files for a single Kratky plot in one directory with no other .out fil
 
 Run from command line examples:
 
-`python3 rg_and_io.py path/to/datafiles -o save/to/dir/plotname -c red blue`
+``` bash
+python3 rg_and_io.py path/to/datafiles -o save/to/dir/plotname -c red blue
+```
 
-`python3 rg_and_io.py user1/saxs/exp_1 -o user1/saxs/exp_1/exp_1_kratky -c red blue`
+```bash
+python3 rg_and_io.py user1/saxs/exp_1 -o user1/saxs/exp_1/exp_1_kratky -c red blue
+```
 
 Output path should not include file extension. Plots will be saved in .pdf format.
 
