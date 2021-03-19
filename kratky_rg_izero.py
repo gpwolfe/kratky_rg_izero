@@ -59,10 +59,10 @@ def gather_files_legend(data_dir):
     fns = []
     legend_names = []
     for fn in os.listdir(data_dir):
-        if fn.endswith(".out"):
+        if fn.endswith('.out'):
             legend_names.append('_'.join(fn.split('_')[:3]))
     for fn in os.listdir(data_dir):
-        if fn.endswith(".out"):
+        if fn.endswith('.out'):
             fns.append(os.path.join(data_dir, fn))
     return fns, legend_names
 
@@ -134,7 +134,7 @@ def plot_colors(color_str, sep=','):
             values.append(val)
         else:
             raise ArgumentError(
-                'Invalid color "{}". Must be a valid color'.format(val))
+                'Invalid color "{}". Must be a valid color.'.format(val))
     return values
 
 
@@ -176,7 +176,7 @@ def plot_rg_io(data_dir, outfile, colors):
 
     for name, df, color in zip(legend_names, dataframes, colors):
         l, = ax.plot(df['s_norm'], df['j_exp_norm'],
-                     linestyle="", marker="o", color=color)
+                     linestyle='', marker='o', color=color)
         patches.append(mpatches.Patch(color=color, label=name))
     plt.legend(handles=patches)
     plt.hlines(y=1.1, xmin=0, xmax=1.7, colors='cyan', linestyles='--', lw=2)
@@ -190,14 +190,14 @@ def rg_i0(argv):
     Example use:
     >>> python3 RG_and_IO.py my/data/dir -o save/to/file -c red blue
     """
-    parser = ArgumentParser(description="Create scatterplot of data.")
+    parser = ArgumentParser(description='Create scatterplot of data.')
     parser.add_argument('mydir', nargs='?', metavar='DIR',
                         help='Path to directory containing data',
                         default=os.getcwd())
     parser.add_argument('--outfile', '-o',
                         help='Filepath including filename for plot, no ext.')
     parser.add_argument('--colors', '-c',
-                        help="Comma-separated colors for scatterplot",
+                        help='Comma-separated colors for scatterplot',
                         type=plot_colors,
                         default=['#e41a1c', '#377eb8', '#4daf4a', '#984ea3',
                                  '#984ea3', '#ffff33'])
