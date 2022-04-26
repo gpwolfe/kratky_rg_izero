@@ -12,7 +12,7 @@ setup(
     packages=["kratky_rg_izero"],
     install_requires=["matplotlib", "pandas"],
     classifiers=[
-        "Intended Audience:: Science/Research",
+        "Intended Audience :: Science/Research",
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Chemistry",
     ],
