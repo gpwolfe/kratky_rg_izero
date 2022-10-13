@@ -7,6 +7,8 @@ Python 3 (created using Python 3.8)
 
 Libraries: matplotlib, pandas
 
+Installation: pip3 install kratky_rg_izero
+
 ## Usage
 Intended for use with .out files produced by PRIMUS.
 
