@@ -2,7 +2,7 @@
 Create overlaid Kratky plots from a directory of SAXS data from [PRIMUS analysis software](https://www.embl-hamburg.de/biosaxs/primus.html),
 using RG and I(0) values.
   
-A part of the paper: Cotranscriptional folding of the lncRNA Xist A-repeats indicates a modular structure https://doi.org/10.1101/2022.07.26.501616
+A part of the paper: [Cotranscriptional folding of the lncRNA Xist A-repeats indicates a modular structure](https://doi.org/10.1101/2022.07.26.501616)
   
 ## Requirements
 Python 3 (created using Python 3.8)
